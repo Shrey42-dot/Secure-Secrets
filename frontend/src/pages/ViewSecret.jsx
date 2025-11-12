@@ -7,7 +7,7 @@ export default function ViewSecret() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch(`http://localhost:4000/api/secrets/${token}`)
+    fetch(`${import.meta.env.VITE_API_URL}/api/secrets/${token}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.secret) setSecret(data.secret);
