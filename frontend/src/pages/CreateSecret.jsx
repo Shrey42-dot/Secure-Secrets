@@ -15,7 +15,7 @@ export default function CreateSecret() {
       });
       const data = await res.json();
       if (data.token) {
-        setLink(`${window.location.origin}/s/${data.token}`);
+        setLink(`${import.meta.env.VITE_API_URL}/s/${data.token}`);
         setSecret("");
       }
     } catch (err) {
