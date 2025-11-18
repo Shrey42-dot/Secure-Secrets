@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import App from "./App";
 import CreateSecret from "./pages/CreateSecret";
 import ViewSecret from "./pages/ViewSecret";
+import './index.css' 
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
