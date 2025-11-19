@@ -35,6 +35,11 @@ export default function CreateSecret() {
   const [secret, setSecret] = useState("");       // <-- real text input
   const [image, setImage] = useState(null);   // <-- image file
   const [link, setLink] = useState("");
+  const copyToClipboard = () => {
+  navigator.clipboard.writeText(link);
+  alert("Link copied to clipboard!");
+  };
+
 
   // Convert image to base64 string
   function fileToBase64(file) {
@@ -98,7 +103,7 @@ export default function CreateSecret() {
     }
 
     setLoading(false); // <-- ALWAYS executed
-};
+  };
 
 
 
@@ -142,13 +147,24 @@ export default function CreateSecret() {
 
       {/* SHOW GENERATED LINK */}
       {link && (
-        <div className="mt-4 bg-gray-700 p-3 rounded-md">
-          <p className="text-green-400">✅ Secret stored successfully!</p>
-          <p className="mt-2 break-all">
-            Share this link: <span className="text-blue-400">{link}</span>
-          </p>
+      <div className="mt-4 bg-gray-700 p-3 rounded-md">
+        <p className="text-green-400">✅ Secret stored successfully!</p>
+
+        <div className="mt-2 flex items-center gap-2 break-all">
+          <span className="text-blue-400">{link}</span>
+
+          {/* COPY ICON BUTTON */}
+          <button
+            onClick={copyToClipboard}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded flex items-center"
+            title="Copy Link"
+          >
+            📋
+          </button>
         </div>
+      </div>
       )}
+
     </div>
   );
 }
