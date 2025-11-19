@@ -1,5 +1,35 @@
 import { useState } from "react";
 import CryptoJS from "crypto-js";
+// Removes EXIF metadata by drawing image to canvas
+function stripMetadata(file) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+
+      canvas.toBlob(
+        (blob) => resolve(blob),
+        "image/jpeg",
+        0.92
+      );
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// Convert cleaned Blob → base64
+function blobToBase64(blob) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result.split(",")[1]);
+    reader.readAsDataURL(blob);
+  });
+}
+
 
 export default function CreateSecret() {
   const [secret, setSecret] = useState("");       // <-- real text input
@@ -27,7 +57,11 @@ export default function CreateSecret() {
 
       // Convert image if selected
       if (image) {
-        base64Image = await fileToBase64(image);
+        // 1. Strip metadata
+        const cleanedBlob = await stripMetadata(image);
+
+        // 2. Convert cleaned image to base64
+        base64Image = await blobToBase64(cleanedBlob);
       }
 
       // Build payload
