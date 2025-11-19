@@ -29,7 +29,7 @@ export default function CreateSecret() {
 
     // Build the combined payload
     const payload = {
-      text,           // <-- text typed by user
+      text: text,           // <-- text typed by user
       image: base64Image // <-- base64 image or null
     };
 
