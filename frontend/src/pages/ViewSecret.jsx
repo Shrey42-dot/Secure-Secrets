@@ -6,17 +6,6 @@ export default function ViewSecret() {
   const { token } = useParams();
   const [secretContent, setSecretContent] = useState(null);
   const [error, setError] = useState("");
-  const copyImage = async (base64) => {
-    const res = await fetch(`data:image/jpeg;base64,${base64}`);
-    const blob = await res.blob();
-
-    await navigator.clipboard.write([
-      new ClipboardItem({ "image/jpeg": blob })
-    ]);
-
-    alert("Image copied to clipboard!");
-  };
-
   const downloadImage = (base64) => {
     const link = document.createElement("a");
     link.href = `data:image/jpeg;base64,${base64}`;
@@ -58,13 +47,6 @@ export default function ViewSecret() {
                 />
 
                 {/* Copy + Download Buttons */}
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => copyImage(payload.image)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg"
-                  >
-                    Copy Image
-                  </button>
 
                   <button
                     onClick={() => downloadImage(payload.image)}
@@ -73,7 +55,6 @@ export default function ViewSecret() {
                     Download Image
                   </button>
                 </div>
-              </div>
             );
           } else {
             // Only text
