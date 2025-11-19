@@ -15,49 +15,59 @@ export default function CreateSecret() {
       reader.readAsDataURL(file);
     });
   }
+  const [loading, setLoading] = useState(false);
 
   // Handle submit
   const handleSubmit = async (e) => {
-    e.preventDefault(); // IMPORTANT — prevent page reload
+    e.preventDefault();
+    setLoading(true);
 
-    let base64Image = null;
+    try {
+      let base64Image = null;
 
-    // If image is selected, convert it to base64
-    if (image) {
-      base64Image = await fileToBase64(image);
+      // If an image is selected, convert it to base64
+      if (image) {
+        base64Image = await fileToBase64(image);
+      }
+
+      // Build the combined payload
+      const payload = {
+        text: secret,       // <-- correct variable
+        image: base64Image
+      };
+
+      // Convert to JSON string
+      const jsonString = JSON.stringify(payload);
+
+      // Encrypt on frontend
+      const encrypted = CryptoJS.AES.encrypt(
+        jsonString,
+        import.meta.env.VITE_ENCRYPTION_KEY
+      ).toString();
+
+      // Send encrypted secret to backend
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/secrets`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ secret: encrypted })
+      });
+
+      const data = await res.json();
+
+      // Build the frontend link
+      setLink(`${import.meta.env.VITE_FRONTEND_URL}/s/${data.token}`);
+
+      // Reset inputs
+      setSecret("");     // <-- correct reset
+      setImage(null);
+
+    } catch (err) {
+      console.error("Error creating secret:", err);
     }
 
-    // Build the combined payload
-    const payload = {
-      text: text,           // <-- text typed by user
-      image: base64Image // <-- base64 image or null
-    };
+    setLoading(false);
+};
 
-    // Convert payload to string
-    const jsonString = JSON.stringify(payload);
-
-    // Encrypt on frontend using AES
-    const encrypted = CryptoJS.AES.encrypt(
-      jsonString, 
-      import.meta.env.VITE_ENCRYPTION_KEY
-    ).toString();
-
-    // Send encrypted string to backend
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/secrets`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ secret: encrypted })
-    });
-
-    const data = await res.json();
-
-    // Build frontend link (your original logic)
-    setLink(`${import.meta.env.VITE_FRONTEND_URL}/s/${data.token}`);
-
-    // Reset inputs
-    setText("");
-    setImage(null);
-  };
 
   return (
     <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
@@ -85,10 +95,16 @@ export default function CreateSecret() {
         {/* BUTTON */}
         <button
           type="submit"
-          className="mt-3 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg w-full"
+          disabled={loading}
+          className="mt-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-2 px-4 rounded-lg w-full flex justify-center items-center"
         >
-          Generate Link
+          {loading ? (
+            <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+          ) : (
+            "Generate Link"
+          )}
         </button>
+
       </form>
 
       {/* SHOW GENERATED LINK */}
