@@ -25,27 +25,27 @@ export default function CreateSecret() {
     try {
       let base64Image = null;
 
-      // If an image is selected, convert it to base64
+      // Convert image if selected
       if (image) {
         base64Image = await fileToBase64(image);
       }
 
-      // Build the combined payload
+      // Build payload
       const payload = {
-        text: secret,       // <-- correct variable
+        text: secret,
         image: base64Image
       };
 
-      // Convert to JSON string
+      // Convert to string
       const jsonString = JSON.stringify(payload);
 
-      // Encrypt on frontend
+      // Encrypt
       const encrypted = CryptoJS.AES.encrypt(
         jsonString,
         import.meta.env.VITE_ENCRYPTION_KEY
       ).toString();
 
-      // Send encrypted secret to backend
+      // Send to backend
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/secrets`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -54,10 +54,8 @@ export default function CreateSecret() {
 
       const data = await res.json();
 
-      // Build the frontend link
       setLink(`${import.meta.env.VITE_FRONTEND_URL}/s/${data.token}`);
 
-      // Reset inputs
       setSecret("");     // <-- correct reset
       setImage(null);
 
@@ -65,8 +63,9 @@ export default function CreateSecret() {
       console.error("Error creating secret:", err);
     }
 
-    setLoading(false);
+    setLoading(false); // <-- ALWAYS executed
 };
+
 
 
   return (
