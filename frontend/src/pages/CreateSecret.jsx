@@ -2,7 +2,7 @@ import { useState } from "react";
 import CryptoJS from "crypto-js";
 
 export default function CreateSecret() {
-  const [text, setText] = useState("");       // <-- real text input
+  const [secret, setSecret] = useState("");       // <-- real text input
   const [image, setImage] = useState(null);   // <-- image file
   const [link, setLink] = useState("");
 
@@ -77,8 +77,8 @@ export default function CreateSecret() {
         
         {/* TEXT INPUT */}
         <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
+          value={secret}
+          onChange={(e) => setSecret(e.target.value)}
           placeholder="Type your secret here..."
           className="w-full p-3 rounded-lg text-black"
           rows="4"
