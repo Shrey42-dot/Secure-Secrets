@@ -6,51 +6,41 @@ const router = express.Router();
 
 router.post("/", async (req, res) => {
   try {
-    const { secret, ttl_seconds = 3600 } = req.body;
+    const { secret } = req.body;
 
-    // The frontend always sends an encrypted string
     if (!secret || typeof secret !== "string") {
-      return res
-        .status(400)
-        .json({ error: "Missing or invalid encrypted secret" });
+      return res.status(400).json({ error: "Missing encrypted secret" });
     }
 
     const token = genToken();
     const tokenHash = hashToken(token);
-    const expiresAt = new Date(Date.now() + ttl_seconds * 1000);
 
-    // Store encrypted string directly
     await Secret.create({
       token_hash: tokenHash,
       ciphertext: secret,
-      expires_at: expiresAt,
+      expires_at: new Date(Date.now() + 3600 * 1000)
     });
 
-    res.status(201).json({ token });
+    return res.status(201).json({ token });
+
   } catch (err) {
-    console.error("create error:", err);
-    res.status(500).json({ error: "internal_error" });
+    console.error("POST / error:", err);
+    return res.status(500).json({ error: "internal_error" });
   }
 });
 
 router.get("/:token", async (req, res) => {
   try {
-    const token = req.params.token;
-    const tokenHash = hashToken(token);
+    const tokenHash = hashToken(req.params.token);
 
-    // Atomically fetch + delete
     const doc = await Secret.findOneAndDelete({ token_hash: tokenHash });
-    if (!doc)
-      return res.status(410).json({ error: "gone_or_invalid" });
+    if (!doc) return res.status(410).json({ error: "gone_or_invalid" });
 
-    res.set("Cache-Control", "no-store");
+    // return encrypted only
+    return res.json({ encrypted: doc.ciphertext });
 
-    // Return encrypted blob
-    return res.json({
-      encrypted: doc.ciphertext,
-    });
   } catch (err) {
-    console.error("retrieve error:", err);
+    console.error("GET / error:", err);
     res.status(500).json({ error: "internal_error" });
   }
 });
