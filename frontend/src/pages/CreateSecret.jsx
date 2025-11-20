@@ -35,9 +35,14 @@ export default function CreateSecret() {
   const [secret, setSecret] = useState("");       // <-- real text input
   const [image, setImage] = useState(null);   // <-- image file
   const [link, setLink] = useState("");
+  const [copied , setCopied] = useState(false);
   const copyToClipboard = () => {
-  navigator.clipboard.writeText(link);
-  alert("Link copied to clipboard!");
+  navigator.clipboard.writeText(link).
+  then(() => {
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
+  })
+  .catch((err) => console.error("Failed to copy: ", err));
   };
 
 
@@ -163,6 +168,12 @@ export default function CreateSecret() {
           </button>
         </div>
       </div>
+      )}
+      {copied && (
+        <div className="fixed bottom-4 right-4 bg-black text-white px-4 py-2 rounded-lg shadow-lg
+                        animate-fade duration-300">
+          Link copied!
+        </div>
       )}
 
     </div>
