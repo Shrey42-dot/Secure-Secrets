@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import CryptoJS from "crypto-js";
 import { QRCodeCanvas } from "qrcode.react";
 
