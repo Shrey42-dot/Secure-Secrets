@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.post("/", async (req, res) => {
   try {
-    const { secret } = req.body;
+    const { secret, password_protected, salt } = req.body;
     const ttl_seconds = req.body.ttl_seconds || 3600;
 
     if (!secret || typeof secret !== "string") {
@@ -19,6 +19,8 @@ router.post("/", async (req, res) => {
     await Secret.create({
       token_hash: tokenHash,
       ciphertext: secret,
+      password_protected: password_protected || false,
+      salt: salt || null,
       expires_at: new Date(Date.now() + ttl_seconds * 1000)
     });
 
@@ -30,6 +32,7 @@ router.post("/", async (req, res) => {
   }
 });
 
+
 router.get("/:token", async (req, res) => {
   try {
     const tokenHash = hashToken(req.params.token);
@@ -40,7 +43,9 @@ router.get("/:token", async (req, res) => {
     // return encrypted only
     return res.json({
       encrypted: doc.ciphertext,
-      expires_at: doc.expires_at })
+      expires_at: doc.expires_at,
+      password_protected: doc.password_protected,
+      salt: doc.salt })
 
   } catch (err) {
     console.error("GET / error:", err);

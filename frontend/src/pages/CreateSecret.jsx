@@ -32,35 +32,27 @@ function blobToBase64(blob) {
   });
 }
 
-
 export default function CreateSecret() {
-  const [secret, setSecret] = useState("");       // <-- real text input
-  const [image, setImage] = useState(null);   // <-- image file
+  const [secret, setSecret] = useState("");
+  const [image, setImage] = useState(null);
   const [link, setLink] = useState("");
-  const [copied , setCopied] = useState(false);
-  const [ttl, setTtl] = useState(3600); 
+  const [copied, setCopied] = useState(false);
+  const [ttl, setTtl] = useState(3600);
   const [loading, setLoading] = useState(false);
+  const [usePassword, setUsePassword] = useState(false);
+  const [password, setPassword] = useState("");
+
   const fileInputRef = useRef(null);
+
   const copyToClipboard = () => {
-  navigator.clipboard.writeText(link).
-  then(() => {
-    setCopied(true);
-    setTimeout(() => setCopied(false), 3000);
-  })
-  .catch((err) => console.error("Failed to copy: ", err));
+    navigator.clipboard
+      .writeText(link)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000);
+      })
+      .catch((err) => console.error("Failed to copy: ", err));
   };
-
-
-  // Convert image to base64 string
-  function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result.split(",")[1]); // remove prefix
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
-  
 
   // Handle submit
   const handleSubmit = async (e) => {
@@ -72,52 +64,85 @@ export default function CreateSecret() {
 
       // Convert image if selected
       if (image) {
-        // 1. Strip metadata
         const cleanedBlob = await stripMetadata(image);
-
-        // 2. Convert cleaned image to base64
         base64Image = await blobToBase64(cleanedBlob);
       }
 
-      // Build payload
-      const payload = {
+      // Build payload (we'll stringify & encrypt this)
+      const payloadObj = {
         text: secret,
-        image: base64Image,
-        ttl_seconds: ttl
+        image: base64Image || null,
       };
 
-      // Convert to string
-      const jsonString = JSON.stringify(payload);
+      const jsonString = JSON.stringify(payloadObj);
 
-      // Encrypt
-      const encrypted = CryptoJS.AES.encrypt(
-        jsonString,
-        import.meta.env.VITE_ENCRYPTION_KEY
-      ).toString();
+      let encrypted;
+      let saltHex = null;
+      let passwordProtected = false;
 
-      // Send to backend
+      if (usePassword && password.trim() !== "") {
+        // 1) Generate random salt (16 bytes)
+        const salt = CryptoJS.lib.WordArray.random(16);
+        saltHex = salt.toString(); // hex string
+
+        // 2) Derive key using PBKDF2
+        const derivedKey = CryptoJS.PBKDF2(password, salt, {
+          keySize: 256 / 32, // 256-bit key
+          iterations: 10000,
+        });
+
+        // 3) Encrypt with derived key
+        encrypted = CryptoJS.AES.encrypt(jsonString, derivedKey).toString();
+
+        passwordProtected = true;
+      } else {
+        // Fallback: encrypt with server-side env key (existing behavior)
+        encrypted = CryptoJS.AES.encrypt(
+          jsonString,
+          import.meta.env.VITE_ENCRYPTION_KEY
+        ).toString();
+
+        passwordProtected = false;
+      }
+
+      // send to backend
+      const body = {
+        secret: encrypted,
+        ttl_seconds: ttl,
+        password_protected: passwordProtected,
+        salt: saltHex, // null if not password-protected
+      };
+
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/secrets`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ secret: encrypted, ttl_seconds: ttl })
+        body: JSON.stringify(body),
       });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Server error: ${res.status} ${text}`);
+      }
 
       const data = await res.json();
 
       setLink(`${import.meta.env.VITE_FRONTEND_URL}/s/${data.token}`);
 
-      setSecret("");     // <-- correct reset
+      // reset UI
+      setSecret("");
       setImage(null);
       setTtl(3600);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      setPassword("");
+      setUsePassword(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err) {
       console.error("Error creating secret:", err);
+      alert("Error creating secret. See console for details.");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false); // <-- ALWAYS executed
   };
+
   // Download the QR as PNG (using canvas output from qrcode.react)
   const downloadQRCode = () => {
     try {
@@ -135,13 +160,11 @@ export default function CreateSecret() {
     }
   };
 
-
   return (
     <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
       <h1 className="text-xl mb-4 font-semibold">Create a One-Time Secret</h1>
 
       <form onSubmit={handleSubmit}>
-        
         {/* TEXT INPUT */}
         <textarea
           value={secret}
@@ -159,17 +182,41 @@ export default function CreateSecret() {
           onChange={(e) => setImage(e.target.files[0])}
           className="mt-3 w-full p-2 rounded-lg text-black"
         />
+
+        {/* TTL */}
         <select
           className="w-full mt-3 p-2 rounded-lg text-black"
           value={ttl}
           onChange={(e) => setTtl(Number(e.target.value))}
         >
           <option value={600}>10 minutes</option>
-          <option value={3600}>1 hour (Default) </option>
+          <option value={3600}>1 hour (Default)</option>
           <option value={86400}>24 hours</option>
           <option value={604800}>7 days</option>
         </select>
 
+        {/* PASSWORD TOGGLE */}
+        <div className="mt-3 text-white">
+          <label className="flex items-center gap-2 select-none">
+            <input
+              type="checkbox"
+              checked={usePassword}
+              onChange={() => setUsePassword((s) => !s)}
+            />
+            <span>Add password protection</span>
+          </label>
+
+          {usePassword && (
+            <input
+              type="password"
+              placeholder="Enter password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full mt-2 p-2 rounded-lg text-black"
+              autoComplete="new-password"
+            />
+          )}
+        </div>
 
         {/* BUTTON */}
         <button
@@ -183,57 +230,48 @@ export default function CreateSecret() {
             "Generate Link"
           )}
         </button>
-
       </form>
 
       {/* SHOW GENERATED LINK + QR */}
       {link && (
-      <div className="mt-4 bg-gray-700 p-3 rounded-md">
-        <p className="text-green-400">✅ Secret stored successfully!</p>
+        <div className="mt-4 bg-gray-700 p-3 rounded-md">
+          <p className="text-green-400">✅ Secret stored successfully!</p>
 
-        <div className="mt-2 flex flex-col md:flex-row items-start md:items-center gap-4">
-          <div className="break-all">
-            <div className="text-sm text-gray-300">Link</div>
-            <div className="mt-1 flex items-center gap-2">
-              <span className="text-blue-400">{link}</span>
+          <div className="mt-2 flex flex-col md:flex-row items-start md:items-center gap-4">
+            <div className="break-all">
+              <div className="text-sm text-gray-300">Link</div>
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-blue-400">{link}</span>
 
-              {/* COPY ICON BUTTON */}
+                <button
+                  onClick={copyToClipboard}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded flex items-center"
+                  title="Copy Link"
+                >
+                  📋
+                </button>
+              </div>
+            </div>
+
+            {/* QR CODE + DOWNLOAD */}
+            <div className="flex flex-col items-center gap-2 p-2 bg-gray-800 rounded">
+              <QRCodeCanvas id="qrcode-canvas" value={link} size={192} includeMargin={true} />
               <button
-                onClick={copyToClipboard}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded flex items-center"
-                title="Copy Link"
+                onClick={downloadQRCode}
+                className="mt-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
               >
-                📋
+                Download QR
               </button>
             </div>
           </div>
-
-          {/* QR CODE + DOWNLOAD */}
-          <div className="flex flex-col items-center gap-2 p-2 bg-gray-800 rounded">
-            {/* QRCode renders a canvas (renderAs="canvas") with specified id */}
-            <QRCodeCanvas
-              id="qrcode-canvas"
-              value={link}
-              size={192}
-              includeMargin={true}
-            />
-            <button
-              onClick={downloadQRCode}
-              className="mt-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
-            >
-              Download QR
-            </button>
-          </div>
         </div>
-      </div>
       )}
+
       {copied && (
-        <div className="fixed bottom-4 right-4 bg-black text-white px-4 py-2 rounded-lg shadow-lg
-                        animate-fade duration-300">
+        <div className="fixed bottom-4 right-4 bg-black text-white px-4 py-2 rounded-lg shadow-lg">
           Link copied!
         </div>
       )}
-
     </div>
   );
 }

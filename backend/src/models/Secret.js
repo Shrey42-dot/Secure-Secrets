@@ -7,6 +7,10 @@ const SecretSchema = new mongoose.Schema({
   // Encrypted string sent from the frontend (AES encrypted JSON)
   ciphertext: { type: String, required: true },
 
+  password_protected: { type: Boolean, default: false },
+  
+  salt: { type: String, default: null }, // hex string from frontend
+
   created_at: { type: Date, default: Date.now },
 
   // When this secret expires
