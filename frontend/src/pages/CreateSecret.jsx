@@ -1,6 +1,6 @@
 import { useState } from "react";
 import CryptoJS from "crypto-js";
-import QRCode from "qrcode.react";
+import { QRCodeCanvas } from "qrcode.react";
 
 // Removes EXIF metadata by drawing image to canvas
 function stripMetadata(file) {
@@ -206,12 +206,11 @@ export default function CreateSecret() {
           {/* QR CODE + DOWNLOAD */}
           <div className="flex flex-col items-center gap-2 p-2 bg-gray-800 rounded">
             {/* QRCode renders a canvas (renderAs="canvas") with specified id */}
-            <QRCode
+            <QRCodeCanvas
               id="qrcode-canvas"
               value={link}
               size={192}
               includeMargin={true}
-              renderAs="canvas"
             />
             <button
               onClick={downloadQRCode}
