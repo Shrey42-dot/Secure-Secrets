@@ -1,6 +1,5 @@
 import { useState } from "react";
 import CryptoJS from "crypto-js";
-import { set } from "mongoose";
 // Removes EXIF metadata by drawing image to canvas
 function stripMetadata(file) {
   return new Promise((resolve) => {
