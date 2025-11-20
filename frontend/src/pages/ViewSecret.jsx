@@ -114,7 +114,7 @@ export default function ViewSecret() {
         iterations: 10000,
       });
 
-      const bytes = CryptoJS.AES.decrypt(ciphertext, derivedKey);
+      const bytes = CryptoJS.AES.decrypt(ciphertext, derivedKey.toString());
       const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
 
       if (!decryptedText) {

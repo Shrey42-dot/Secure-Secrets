@@ -92,7 +92,7 @@ export default function CreateSecret() {
         });
 
         // 3) Encrypt with derived key
-        encrypted = CryptoJS.AES.encrypt(jsonString, derivedKey).toString();
+        encrypted = CryptoJS.AES.encrypt(jsonString, derivedKey.toString()).toString();
 
         passwordProtected = true;
       } else {
