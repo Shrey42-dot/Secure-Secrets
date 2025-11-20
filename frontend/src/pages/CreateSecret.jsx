@@ -40,6 +40,7 @@ export default function CreateSecret() {
   const [copied , setCopied] = useState(false);
   const [ttl, setTtl] = useState(3600); 
   const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef(null);
   const copyToClipboard = () => {
   navigator.clipboard.writeText(link).
   then(() => {
@@ -108,6 +109,9 @@ export default function CreateSecret() {
       setSecret("");     // <-- correct reset
       setImage(null);
       setTtl(3600);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     } catch (err) {
       console.error("Error creating secret:", err);
     }
@@ -149,6 +153,7 @@ export default function CreateSecret() {
 
         {/* IMAGE INPUT */}
         <input
+          ref={fileInputRef}
           type="file"
           accept="image/*"
           onChange={(e) => setImage(e.target.files[0])}
