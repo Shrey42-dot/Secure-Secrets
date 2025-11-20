@@ -36,6 +36,7 @@ export default function CreateSecret() {
   const [image, setImage] = useState(null);   // <-- image file
   const [link, setLink] = useState("");
   const [copied , setCopied] = useState(false);
+  const [ttl, setTtl] = useState(3600); 
   const copyToClipboard = () => {
   navigator.clipboard.writeText(link).
   then(() => {
@@ -77,7 +78,8 @@ export default function CreateSecret() {
       // Build payload
       const payload = {
         text: secret,
-        image: base64Image
+        image: base64Image,
+        ttl_seconds: ttl
       };
 
       // Convert to string
@@ -132,8 +134,19 @@ export default function CreateSecret() {
           type="file"
           accept="image/*"
           onChange={(e) => setImage(e.target.files[0])}
-          className="mt-3"
+          className="mt-3 w-full p-2 rounded-lg text-black"
         />
+        <select
+          className="w-full mt-3 p-2 rounded-lg text-black"
+          value={ttl}
+          onChange={(e) => setTtl(Number(e.target.value))}
+        >
+          <option value={600}>10 minutes</option>
+          <option value={3600}>1 hour (Default) </option>
+          <option value={86400}>24 hours</option>
+          <option value={604800}>7 days</option>
+        </select>
+
 
         {/* BUTTON */}
         <button

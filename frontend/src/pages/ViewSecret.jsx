@@ -6,6 +6,7 @@ export default function ViewSecret() {
   const { token } = useParams();
   const [secretContent, setSecretContent] = useState(null);
   const [error, setError] = useState("");
+  const [expiresAt, setExpiresAt] = useState(null);
   const downloadImage = (base64) => {
     const link = document.createElement("a");
     link.href = `data:image/jpeg;base64,${base64}`;
@@ -33,6 +34,7 @@ export default function ViewSecret() {
 
           // Parse decrypted JSON → { text, image }
           const payload = JSON.parse(decryptedText);
+          setExpiresAt(new Date(data.expires_at));
 
           // If there is an image
           if (payload.image) {
@@ -54,6 +56,11 @@ export default function ViewSecret() {
                   >
                     Download Image
                   </button>
+                  {expiresAt && (
+                  <p className="text-yellow-400 mt-2 text-sm">
+                    ⏳ Expires at: {expiresAt.toLocaleString()}
+                  </p>
+                )}
                 </div>
             );
           } else {
