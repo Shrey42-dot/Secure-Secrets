@@ -1,5 +1,7 @@
 import { useState } from "react";
 import CryptoJS from "crypto-js";
+import QRCode from "qrcode.react";
+
 // Removes EXIF metadata by drawing image to canvas
 function stripMetadata(file) {
   return new Promise((resolve) => {
@@ -37,6 +39,7 @@ export default function CreateSecret() {
   const [link, setLink] = useState("");
   const [copied , setCopied] = useState(false);
   const [ttl, setTtl] = useState(3600); 
+  const [loading, setLoading] = useState(false);
   const copyToClipboard = () => {
   navigator.clipboard.writeText(link).
   then(() => {
@@ -56,7 +59,7 @@ export default function CreateSecret() {
       reader.readAsDataURL(file);
     });
   }
-  const [loading, setLoading] = useState(false);
+  
 
   // Handle submit
   const handleSubmit = async (e) => {
@@ -111,7 +114,22 @@ export default function CreateSecret() {
 
     setLoading(false); // <-- ALWAYS executed
   };
-
+  // Download the QR as PNG (using canvas output from qrcode.react)
+  const downloadQRCode = () => {
+    try {
+      const canvas = document.getElementById("qrcode-canvas");
+      if (!canvas) return;
+      const url = canvas.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "secret-qrcode.png";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (err) {
+      console.error("Failed to download QR:", err);
+    }
+  };
 
 
   return (
@@ -163,22 +181,45 @@ export default function CreateSecret() {
 
       </form>
 
-      {/* SHOW GENERATED LINK */}
+      {/* SHOW GENERATED LINK + QR */}
       {link && (
       <div className="mt-4 bg-gray-700 p-3 rounded-md">
         <p className="text-green-400">✅ Secret stored successfully!</p>
 
-        <div className="mt-2 flex items-center gap-2 break-all">
-          <span className="text-blue-400">{link}</span>
+        <div className="mt-2 flex flex-col md:flex-row items-start md:items-center gap-4">
+          <div className="break-all">
+            <div className="text-sm text-gray-300">Link</div>
+            <div className="mt-1 flex items-center gap-2">
+              <span className="text-blue-400">{link}</span>
 
-          {/* COPY ICON BUTTON */}
-          <button
-            onClick={copyToClipboard}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded flex items-center"
-            title="Copy Link"
-          >
-            📋
-          </button>
+              {/* COPY ICON BUTTON */}
+              <button
+                onClick={copyToClipboard}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded flex items-center"
+                title="Copy Link"
+              >
+                📋
+              </button>
+            </div>
+          </div>
+
+          {/* QR CODE + DOWNLOAD */}
+          <div className="flex flex-col items-center gap-2 p-2 bg-gray-800 rounded">
+            {/* QRCode renders a canvas (renderAs="canvas") with specified id */}
+            <QRCode
+              id="qrcode-canvas"
+              value={link}
+              size={192}
+              includeMargin={true}
+              renderAs="canvas"
+            />
+            <button
+              onClick={downloadQRCode}
+              className="mt-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
+            >
+              Download QR
+            </button>
+          </div>
         </div>
       </div>
       )}
