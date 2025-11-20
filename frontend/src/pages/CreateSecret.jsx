@@ -1,5 +1,6 @@
 import { useState } from "react";
 import CryptoJS from "crypto-js";
+import { set } from "mongoose";
 // Removes EXIF metadata by drawing image to canvas
 function stripMetadata(file) {
   return new Promise((resolve) => {
@@ -95,7 +96,7 @@ export default function CreateSecret() {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/secrets`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ secret: encrypted })
+        body: JSON.stringify({ secret: encrypted, ttl_seconds: ttl })
       });
 
       const data = await res.json();
@@ -104,7 +105,7 @@ export default function CreateSecret() {
 
       setSecret("");     // <-- correct reset
       setImage(null);
-
+      setTtl(3600);
     } catch (err) {
       console.error("Error creating secret:", err);
     }
