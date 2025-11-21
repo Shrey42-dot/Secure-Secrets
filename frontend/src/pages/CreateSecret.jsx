@@ -41,6 +41,7 @@ export default function CreateSecret() {
   const [loading, setLoading] = useState(false);
   const [usePassword, setUsePassword] = useState(false);
   const [password, setPassword] = useState("");
+  const [dragActive, setDragActive] = useState(false);
 
   const fileInputRef = useRef(null);
 
@@ -159,6 +160,40 @@ export default function CreateSecret() {
       console.error("Failed to download QR:", err);
     }
   };
+    const handleDragOver = (e) => {
+      e.preventDefault();
+      setDragActive(true);
+    };
+
+    const handleDragLeave = (e) => {
+      e.preventDefault();
+      setDragActive(false);
+    };
+
+    const handleDrop = (e) => {
+      e.preventDefault();
+      setDragActive(false);
+
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        setImage(file);
+      }
+    };
+
+    const handleFileSelect = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        setImage(file);
+      }
+    };
+
+    // For mobile "tap to upload"
+    const openFilePicker = () => {
+      if (fileInputRef.current) {
+        fileInputRef.current.click();
+      }
+    };
+
 
   return (
     <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
@@ -175,12 +210,29 @@ export default function CreateSecret() {
         />
 
         {/* IMAGE INPUT */}
+        {/* DRAG & DROP BOX */}
+        <div
+          className={`mt-3 w-full p-4 border-2 rounded-lg text-center cursor-pointer 
+            ${dragActive ? "border-blue-400 bg-blue-900/20" : "border-gray-500 bg-gray-700"}`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={openFilePicker}
+        >
+          {image ? (
+            <p className="text-green-300">{image.name}</p>
+          ) : (
+            <p className="text-gray-300">Drag & drop an image here, or click to browse</p>
+          )}
+        </div>
+
+        {/* HIDDEN FILE INPUT (fallback for mobile) */}
         <input
-          ref={fileInputRef}
           type="file"
           accept="image/*"
-          onChange={(e) => setImage(e.target.files[0])}
-          className="mt-3 w-full p-2 rounded-lg text-black"
+          ref={fileInputRef}
+          onChange={handleFileSelect}
+          className="hidden"
         />
 
         {/* TTL */}
