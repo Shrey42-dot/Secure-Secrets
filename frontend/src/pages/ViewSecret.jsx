@@ -207,18 +207,19 @@ export default function ViewSecret() {
           <div className="bg-gray-900 dark:bg-gray-100 p-3 rounded-lg dark:text-black text-green-300 break-words transition-colors duration-500">
             {secretContent}
           </div>
+          <button
+          onClick={handleDownloadPDF}
+          className="bg-blue-600 hover:bg-blue-700 text-black dark:text-white px-4 py-2 rounded mt-4 transition-colors duration-500"
+          >
+          Download Secret as PDF
+        </button>
 
           <p className="mt-3 text-red-400 text-sm">⚠️ This secret has now been destroyed forever.</p>
         </>
       ) : (
         <p className="text-red-400">{error || "Loading..."}</p>
       )}
-      <button
-        onClick={handleDownloadPDF}
-        className="bg-blue-600 hover:bg-blue-700 text-black dark:text-white px-4 py-2 rounded mt-4 transition-colors duration-500"
-      >
-        Download Secret as PDF
-      </button>
+      
 
     </div>
   );
