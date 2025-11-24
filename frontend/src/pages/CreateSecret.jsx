@@ -293,9 +293,16 @@ export default function CreateSecret() {
 
           <div className="mt-2 flex flex-col md:flex-row items-start md:items-center gap-4">
             <div className="break-all">
-              <div className="text-sm text-gray-300">Link</div>
+              <div className="text-sm text-black dark:text-gray-300">Link</div>
               <div className="mt-1 flex items-center gap-2">
-                <span className="text-blue-400">{link}</span>
+                <a 
+                  href={link} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-blue-400 hover:underline"
+                >
+                  {link}
+                </a>
 
                 <button
                   onClick={copyToClipboard}
