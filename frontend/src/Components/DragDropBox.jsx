@@ -22,10 +22,10 @@ export default function DragDropBox({
       onClick={openFilePicker}
     >
       {image ? (
-        <p className="text-green-300 dark:text-green-700">{image.name}</p>
+        <p className="text-black dark:text-black">{image.name}</p>
       ) : (
         <p className="text-black dark:text-gray-700">
-          Drag & drop an image here, or click to browse
+          Drag & drop a JPG/PNG image here, or click to browse
         </p>
       )}
     </div>

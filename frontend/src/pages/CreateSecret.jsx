@@ -114,12 +114,28 @@ export default function CreateSecret() {
     setDragActive(false);
 
     const file = e.dataTransfer.files[0];
-    if (file) setImage(file);
+    if (!file) return;
+
+    // ✅ allow only JPG / PNG
+    if (file.type !== "image/jpeg" && file.type !== "image/png") {
+      alert("Only JPG and PNG images are allowed.");
+      return;
+    }
+
+    setImage(file);
   };
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
-    if (file) setImage(file);
+    if (!file) return;
+
+    // ✅ allow only JPG / PNG
+    if (file.type !== "image/jpeg" && file.type !== "image/png") {
+      alert("Only JPG and PNG images are allowed.");
+      return;
+    }
+
+    setImage(file);
   };
 
   const openFilePicker = () => {
@@ -154,7 +170,7 @@ export default function CreateSecret() {
         {/* Hidden file input for mobile */}
         <input
           type="file"
-          accept="image/*"
+          accept="image/png, image/jpeg"  // ✅ restrict to JPG/PNG
           ref={fileInputRef}
           onChange={handleFileSelect}
           className="hidden"

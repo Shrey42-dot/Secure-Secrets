@@ -87,13 +87,27 @@ router.post("/:token/pdf", async (req, res) => {
     });
 
     if (image) {
-      // Support PNG & JPG safely
       const imgBytes = Buffer.from(image, "base64");
+
       let embedded;
-      try {
+
+      // Detect JPG via magic bytes FF D8
+      if (imgBytes[0] === 0xFF && imgBytes[1] === 0xD8) {
         embedded = await pdfDoc.embedJpg(imgBytes);
-      } catch {
+      }
+      // Detect PNG via magic bytes 89 50 4E 47
+      else if (
+        imgBytes[0] === 0x89 &&
+        imgBytes[1] === 0x50 &&
+        imgBytes[2] === 0x4E &&
+        imgBytes[3] === 0x47
+      ) {
         embedded = await pdfDoc.embedPng(imgBytes);
+      } else {
+        console.error("Unsupported image format uploaded");
+        return res.status(400).json({
+          error: "Unsupported image format — only JPG and PNG are allowed.",
+        });
       }
 
       const scaled = embedded.scale(0.5);
