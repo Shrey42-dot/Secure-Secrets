@@ -45,7 +45,7 @@ export default function App() {
       </main>
 
       {/* FOOTER */}
-      <footer className="py-3 text-sm text-gray-400 dark:text-gray-600 text-center">
+      <footer className="py-3 text-sm text-gray-400 dark:text-black text-center transition-colors duration-300">
         © {new Date().getFullYear()} Secure Secrets
       </footer>
     </div>
