@@ -20,7 +20,7 @@ export function stripMetadata(file) {
 }
 
 // Convert cleaned Blob → base64
-function blobToBase64(blob) {
+export function blobToBase64(blob) {
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onloadend = () => resolve(reader.result.split(",")[1]);
