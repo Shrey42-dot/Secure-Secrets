@@ -15,12 +15,11 @@ export default function ViewSecret() {
   const [saltHex, setSaltHex] = useState(null);
   const [ciphertext, setCiphertext] = useState(null);
 
-  const downloadImage = (base64) => {
-    const link = document.createElement("a");
-    link.href = `data:image/jpeg;base64,${base64}`;
-    link.download = "secret-image.jpg";
-    link.click();
-  };
+  const [decryptedText, setDecryptedText] = useState(null);
+  const [decryptedImageBase64, setDecryptedImageBase64] = useState(null);
+  const [isPasswordProtected, setIsPasswordProtected] = useState(false);
+
+
 
   useEffect(() => {
     setError("");
@@ -60,6 +59,10 @@ export default function ViewSecret() {
           }
 
           const payload = JSON.parse(decryptedText);
+          setDecryptedText(payload.text);
+          setDecryptedImageBase64(payload.image || null);
+          setIsPasswordProtected(false);
+
           setExpiresAt(data.expires_at ? new Date(data.expires_at) : null);
 
           if (payload.image) {
@@ -70,14 +73,7 @@ export default function ViewSecret() {
 
                 <img src={imgSrc} className="rounded-lg shadow-lg max-w-full mb-4" />
 
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => downloadImage(payload.image)}
-                    className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg"
-                  >
-                    Download Image
-                  </button>
-                </div>
+                
 
                 {expiresAt && (
                   <p className="text-yellow-400 mt-2 text-sm">⏳ Expires at: {expiresAt.toLocaleString()}</p>
@@ -123,6 +119,10 @@ export default function ViewSecret() {
       }
 
       const payload = JSON.parse(decryptedText);
+      setDecryptedText(payload.text);
+      setDecryptedImageBase64(payload.image || null);
+      setIsPasswordProtected(true);
+
 
       if (payload.image) {
         const imgSrc = `data:image/*;base64,${payload.image}`;
@@ -132,14 +132,7 @@ export default function ViewSecret() {
 
             <img src={imgSrc} className="rounded-lg shadow-lg max-w-full mb-4" />
 
-            <div className="flex gap-2">
-              <button
-                onClick={() => downloadImage(payload.image)}
-                className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg"
-              >
-                Download Image
-              </button>
-            </div>
+            
 
             {expiresAt && (
               <p className="text-yellow-400 mt-2 text-sm">⏳ Expires at: {expiresAt.toLocaleString()}</p>
@@ -156,7 +149,33 @@ export default function ViewSecret() {
       setError("Incorrect password or corrupted data.");
     }
   }
+  const handleDownloadPDF = async () => {
+  try {
+    const res = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/secrets/${token}/pdf`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: decryptedText,
+          image: decryptedImageBase64,   // already decoded image
+          password: isPasswordProtected ? password : null
+        }),
+      }
+    );
 
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "secret.pdf";
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error(err);
+    alert("Error generating PDF");
+  }
+};
   return (
     <div className="bg-gray-800 dark:bg-white text-white dark:text-black p-6 rounded-xl shadow-lg text-center transition-colors duration-500">
       {needPassword ? (
@@ -194,6 +213,13 @@ export default function ViewSecret() {
       ) : (
         <p className="text-red-400">{error || "Loading..."}</p>
       )}
+      <button
+        onClick={handleDownloadPDF}
+        className="bg-blue-600 hover:bg-blue-700 text-black dark:text-white px-4 py-2 rounded mt-4 transition-colors duration-500"
+      >
+        Download Secret as PDF
+      </button>
+
     </div>
   );
 }
