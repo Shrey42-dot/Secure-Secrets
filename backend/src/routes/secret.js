@@ -64,6 +64,7 @@ router.post("/:token/pdf", async (req, res) => {
 
     const pdfDoc = await PDFDocument.create();
 
+    // FIX: Encryption must happen BEFORE adding pages or embedding images/fonts
     if (password) {
       pdfDoc.encrypt({
         ownerPassword: password,
@@ -72,6 +73,7 @@ router.post("/:token/pdf", async (req, res) => {
     }
 
     const page = pdfDoc.addPage([600, 800]);
+
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontSize = 14;
 
@@ -85,8 +87,15 @@ router.post("/:token/pdf", async (req, res) => {
     });
 
     if (image) {
+      // Support PNG & JPG safely
       const imgBytes = Buffer.from(image, "base64");
-      const embedded = await pdfDoc.embedJpg(imgBytes);
+      let embedded;
+      try {
+        embedded = await pdfDoc.embedJpg(imgBytes);
+      } catch {
+        embedded = await pdfDoc.embedPng(imgBytes);
+      }
+
       const scaled = embedded.scale(0.5);
 
       page.drawImage(embedded, {
@@ -111,5 +120,6 @@ router.post("/:token/pdf", async (req, res) => {
     res.status(500).send("PDF generation failed");
   }
 });
+
 
 export default router;
