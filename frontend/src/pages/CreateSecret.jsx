@@ -293,7 +293,7 @@ export default function CreateSecret() {
 
           <div className="mt-2 flex flex-col md:flex-row items-start md:items-center gap-4">
             <div className="break-all">
-              <div className="text-sm dark:text-black text-gray-300">Link</div>
+              <div className="text-sm dark:text-black text-gray-300 transition-colors duration-500">Link</div>
               <div className="mt-1 flex items-center gap-2">
                 <a 
                   href={link} 
