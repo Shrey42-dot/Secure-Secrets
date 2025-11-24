@@ -158,7 +158,7 @@ export default function ViewSecret() {
   }
 
   return (
-    <div className="bg-gray-800 p-6 rounded-xl shadow-lg text-center">
+    <div className="bg-gray-800 dark:bg-white text-white dark:text-black p-6 rounded-xl shadow-lg text-center transition-colors duration-500">
       {needPassword ? (
         <div className="flex flex-col items-center text-white">
           <h2 className="text-lg mb-2">This secret is password protected</h2>
@@ -168,7 +168,7 @@ export default function ViewSecret() {
             placeholder="Enter password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="p-2 rounded text-black w-full max-w-xs"
+            className="p-2 rounded text-black dark:bg-gray-200 w-full max-w-xs"
             autoFocus
           />
 
@@ -185,7 +185,7 @@ export default function ViewSecret() {
         <>
           <h1 className="text-xl mb-3 font-semibold">Your Secret:</h1>
 
-          <div className="bg-gray-900 p-3 rounded-lg text-green-300 break-words">
+          <div className="bg-gray-900 dark:bg-gray-100 p-3 rounded-lg text-green-300 break-words transition-colors duration-500">
             {secretContent}
           </div>
 

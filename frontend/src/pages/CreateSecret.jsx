@@ -196,7 +196,7 @@ export default function CreateSecret() {
 
 
   return (
-    <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
+    <div className="bg-gray-800 dark:bg-white text-white dark:text-black p-6 rounded-xl shadow-lg transition-colors duration-500">
       <h1 className="text-xl mb-4 font-semibold">Create a One-Time Secret</h1>
 
       <form onSubmit={handleSubmit}>
@@ -205,7 +205,7 @@ export default function CreateSecret() {
           value={secret}
           onChange={(e) => setSecret(e.target.value)}
           placeholder="Type your secret here..."
-          className="w-full p-3 rounded-lg text-black"
+          className="w-full p-3 rounded-lg text-black dark:text-black dark:bg-gray-200"
           rows="4"
         />
 
@@ -213,7 +213,9 @@ export default function CreateSecret() {
         {/* DRAG & DROP BOX */}
         <div
           className={`mt-3 w-full p-4 border-2 rounded-lg text-center cursor-pointer 
-            ${dragActive ? "border-blue-400 bg-blue-900/20" : "border-gray-500 bg-gray-700"}`}
+            ${dragActive 
+                    ? "border-gray-500 dark:border-gray-300 bg-gray-200 dark:bg-gray-200" 
+                    : "border-gray-500 dark:border-gray-300 bg-gray-200 dark:bg-gray-200"}`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
@@ -222,7 +224,7 @@ export default function CreateSecret() {
           {image ? (
             <p className="text-green-300">{image.name}</p>
           ) : (
-            <p className="text-gray-300">Drag & drop an image here, or click to browse</p>
+            <p className="text-black">Drag & drop an image here, or click to browse</p>
           )}
         </div>
 
@@ -237,7 +239,7 @@ export default function CreateSecret() {
 
         {/* TTL */}
         <select
-          className="w-full mt-3 p-2 rounded-lg text-black"
+          className="w-full mt-3 p-2 rounded-lg text-black dark:bg-gray-200 dark:text-black"
           value={ttl}
           onChange={(e) => setTtl(Number(e.target.value))}
         >
@@ -248,7 +250,7 @@ export default function CreateSecret() {
         </select>
 
         {/* PASSWORD TOGGLE */}
-        <div className="mt-3 text-white">
+        <div className="mt-3 text-white dark:text-black transition-colors duration-500">
           <label className="flex items-center gap-2 select-none">
             <input
               type="checkbox"
@@ -264,7 +266,7 @@ export default function CreateSecret() {
               placeholder="Enter password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full mt-2 p-2 rounded-lg text-black"
+              className="w-full mt-2 p-2 rounded-lg text-black dark:bg-gray-200"
               autoComplete="new-password"
             />
           )}
@@ -286,7 +288,7 @@ export default function CreateSecret() {
 
       {/* SHOW GENERATED LINK + QR */}
       {link && (
-        <div className="mt-4 bg-gray-700 p-3 rounded-md">
+        <div className="mt-4 bg-gray-700 dark:bg-gray-200 p-3 rounded-md transition-colors duration-500">
           <p className="text-green-400">✅ Secret stored successfully!</p>
 
           <div className="mt-2 flex flex-col md:flex-row items-start md:items-center gap-4">
