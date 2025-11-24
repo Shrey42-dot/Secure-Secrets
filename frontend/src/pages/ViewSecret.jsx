@@ -185,7 +185,7 @@ export default function ViewSecret() {
         <>
           <h1 className="text-xl mb-3 font-semibold">Your Secret:</h1>
 
-          <div className="bg-gray-900 dark:bg-gray-100 p-3 rounded-lg text-black dark:text-green-300 break-words transition-colors duration-500">
+          <div className="bg-gray-900 dark:bg-gray-100 p-3 rounded-lg dark:text-black text-green-300 break-words transition-colors duration-500">
             {secretContent}
           </div>
 
