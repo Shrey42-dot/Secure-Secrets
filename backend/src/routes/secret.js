@@ -54,6 +54,18 @@ router.get("/:token", async (req, res) => {
   }
 });
 
+function sanitizeForPDF(str) {
+  if (!str) return "";
+
+  return str
+    .replace(/\t/g, "    ")              // replace tabs with spaces
+    .replace(/\r/g, "")                  // remove carriage returns
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "") // remove control chars
+    .replace(/\\/g, "\\\\")              // escape backslashes
+    .split("\n")                         // wrap long lines
+    .map(line => line.slice(0, 120))     // limit line length for PDF
+    .join("\n");
+}
 
 router.post("/:token/pdf", async (req, res) => {
   try {
@@ -77,7 +89,8 @@ router.post("/:token/pdf", async (req, res) => {
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontSize = 14;
 
-    page.drawText(text || "No text provided", {
+    const safeText = sanitizeForPDF(text);
+    page.drawText(safeText || "No text provided", {
       x: 50,
       y: 750,
       size: fontSize,
