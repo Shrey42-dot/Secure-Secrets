@@ -59,7 +59,7 @@ export default function CreateSecret() {
       let encrypted;
       let saltHex = null;
       let passwordProtected = false;
-      if (usepassword && password.trim !== ""){
+      if (usePassword && password.trim !== ""){
         encrypted = await encryptWithPassword(password, jsonString);
         passwordProtected = true;
       } else {
