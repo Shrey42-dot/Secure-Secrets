@@ -194,11 +194,7 @@ export default function ViewSecret() {
     return (
       <div>
         <p>{decryptedText}</p>
-        {expiresAt && (
-          <p className="text-yellow-400 mt-2 text-sm">
-            ⏳ Expires at: {expiresAt.toLocaleString()}
-          </p>
-        )}
+        
       </div>
     );
   };
@@ -242,7 +238,13 @@ export default function ViewSecret() {
           >
             Download Secret as PDF
           </button>
-
+          <div>
+            {expiresAt && (
+            <p className="text-yellow-400 mt-2 text-sm">
+              ⏳ Expires at: {expiresAt.toLocaleString()}
+            </p>
+            )}
+          </div>
           <p className="mt-3 text-red-400 text-sm">
             ⚠️ This secret has now been destroyed forever.
           </p>
