@@ -170,7 +170,7 @@ export default function CreateSecret() {
           className="w-full p-3 rounded-lg text-black dark:text-black dark:bg-gray-200"
           rows={1}
           style= {{
-            overflow: hidden,
+            overflow: "hidden",
             resize: "none",
           }}
         />
