@@ -17,7 +17,7 @@ export default function ViewSecret() {
 
   // NEW: decrypted data used for both UI and PDF
   const [decryptedText, setDecryptedText] = useState(null);
-  const [decryptedImageBase64, setDecryptedImageBase64] = useState(null);
+  const [decryptedImages, setDecryptedImages] = useState([]);
   const [isPasswordProtected, setIsPasswordProtected] = useState(false);
 
   useEffect(() => {
@@ -61,53 +61,53 @@ export default function ViewSecret() {
             const payload = JSON.parse(decryptedTextString);
 
             setDecryptedText(payload.text);
-            setDecryptedImageBase64(payload.image || null);
+            setDecryptedImages(Array.isArray(payload.images) ? payload.images : []);
             setIsPasswordProtected(false);
 
             setExpiresAt(data.expires_at ? new Date(data.expires_at) : null);
           })
           .catch((err) => {
-            console.error(err);
+           
             setError("Error decrypting secret.");
           });
 
       })
       .catch((err) => {
-        console.error(err);
+        
         setError("Error retrieving secret.");
       });
   }, [token]);
 
   async function decryptWithPassword() {
-  setError("");
+    setError("");
 
-  try {
-    if (!password || !ciphertext) {
-      setError("Missing password or data.");
-      return;
+    try {
+      if (!password || !ciphertext) {
+        setError("Missing password or data.");
+        return;
+      }
+
+      // ciphertext is now the packed base64 output from WebCrypto
+      const decryptedTextString = await webDecrypt(password, ciphertext);
+
+      const payload = JSON.parse(decryptedTextString);
+
+      setDecryptedText(payload.text);
+      setDecryptedImages(Array.isArray(payload.images) ? payload.images : []);
+      setIsPasswordProtected(false);
+
+      setNeedPassword(false);
+    } catch (err) {
+      
+      setError("Incorrect password or corrupted data.");
     }
-
-    // ciphertext is now the packed base64 output from WebCrypto
-    const decryptedTextString = await webDecrypt(password, ciphertext);
-
-    const payload = JSON.parse(decryptedTextString);
-
-    setDecryptedText(payload.text);
-    setDecryptedImageBase64(payload.image || null);
-    setIsPasswordProtected(false);
-
-    setNeedPassword(false);
-  } catch (err) {
-    console.error(err);
-    setError("Incorrect password or corrupted data.");
   }
-}
 
   // NEW: Single handler to download PDF using decrypted data
   const handleDownloadPDF = async () => {
     try {
       // Safety: don't send empty data
-      if (!decryptedText && !decryptedImageBase64) {
+      if (!decryptedText && decryptedImages.length ===0) {
         alert("Secret is not loaded yet. Please wait or unlock first.");
         return;
       }
@@ -119,7 +119,7 @@ export default function ViewSecret() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             text: decryptedText,
-            image: decryptedImageBase64, // already base64
+            images: decryptedImages, // already base64
             // NEW: only send password if this was a password-protected secret
             password: isPasswordProtected ? password : null,
           }),
@@ -138,35 +138,37 @@ export default function ViewSecret() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      console.error(err);
+      
       alert("Error generating PDF");
     }
   };
 
   // NEW: build the visible secret UI based on decrypted data
   const renderSecretContent = () => {
-    if (!decryptedText && !decryptedImageBase64) return null;
+    if (!decryptedText && decryptedImages.length ===0 ) return null;
 
     // If there's an image, show text + image; otherwise just text
-    if (decryptedImageBase64) {
-      const imgSrc = `data:image/*;base64,${decryptedImageBase64}`;
+    if (decryptedImages && decryptedImages.length > 0) {
       return (
         <div className="flex flex-col items-center">
           <p className="mb-3">{decryptedText}</p>
 
-          <img
-            src={imgSrc}
-            className="rounded-lg shadow-lg max-w-full mb-4"
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+            {decryptedImages.map((img, index) => (
+              <img
+                key={index}
+                src={`data:image/*;base64,${img}`}
+                className="rounded-lg shadow-lg max-w-full h-auto object-cover"
+                alt={`secret-img-${index}`}
+              />
+            ))}
+          </div>
 
-          {expiresAt && (
-            <p className="text-yellow-400 mt-2 text-sm">
-              ⏳ Expires at: {expiresAt.toLocaleString()}
-            </p>
-          )}
+          
         </div>
       );
     }
+
 
     // Text-only secret
     return (
@@ -180,7 +182,7 @@ export default function ViewSecret() {
   return (
     <div className="bg-gray-800 dark:bg-white text-white dark:text-black p-6 rounded-xl shadow-lg text-center transition-colors duration-500">
       {needPassword ? (
-        <div className="flex flex-col items-center text-white">
+        <div className="flex flex-col items-center text-white dark:text-black transition-colors duration-500">
           <h2 className="text-lg mb-2">This secret is password protected</h2>
 
           <input
@@ -201,21 +203,23 @@ export default function ViewSecret() {
 
           {error && <p className="text-red-400 mt-2">{error}</p>}
         </div>
-      ) : decryptedText || decryptedImageBase64 ? (
+      ) : decryptedText || decryptedImages.length>0 ? (
         <>
           <h1 className="text-xl mb-3 font-semibold">Your Secret:</h1>
 
           <div className="bg-gray-900 dark:bg-gray-100 p-3 rounded-lg dark:text-black text-green-300 break-words transition-colors duration-500">
             {renderSecretContent()}
           </div>
-
           {/* NEW: single unified PDF download button */}
+          {(decryptedText || decryptedImages.length>0) && (
           <button
             onClick={handleDownloadPDF}
             className="bg-blue-600 hover:bg-blue-700 text-black dark:text-white px-4 py-2 rounded mt-4 transition-colors duration-500"
           >
             Download Secret as PDF
           </button>
+            )}
+          
           <div>
             {expiresAt && (
             <p className="text-yellow-400 mt-2 text-sm">

@@ -35,14 +35,28 @@ function bytesToBase64(bytes) {
 /**
  * Helper: Convert Base64 string to Uint8Array
  */
-function base64ToBytes(base64) {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
+/**
+ * Helper: Safely convert Base64 string to Uint8Array
+ * Returns null if the string is not valid Base64.
+ */
+function safeBase64ToBytes(base64) {
+  if (typeof base64 !== "string" || !base64.trim()) {
+    return null;
   }
-  return bytes;
+
+  try {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+  } catch (e) {
+    // atob() threw -> invalid Base64
+    return null;
+  }
 }
+
 
 /**
  * 🔐 Encrypts text using a password.
@@ -89,49 +103,6 @@ export async function encryptWithPassword(password, plaintext) {
 
   return bytesToBase64(combined); 
 }
-
-/**
- * 🔓 Decrypts data using a password.
- * * @param {string} password - User's password
- * @param {string} packedData - The Base64 string from encryptWithPassword
- * @returns {Promise<string>} Decrypted text
- */
-export async function decryptWithPassword(password, packedData) {
-  const subtle = getSubtle();
-
-  // 1. Unpack
-  const combined = base64ToBytes(packedData);
-  const salt = combined.slice(0, 16);
-  const iv = combined.slice(16, 28);
-  const ciphertext = combined.slice(28);
-
-  // 2. Import Password
-  const baseKey = await subtle.importKey(
-    "raw", textEncoder.encode(password), "PBKDF2", false, ["deriveKey"]
-  );
-
-  // 3. Re-Derive Key
-  const aesKey = await subtle.deriveKey(
-    { name: "PBKDF2", salt, iterations: 600000, hash: "SHA-256" },
-    baseKey,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["encrypt", "decrypt"]
-  );
-
-  // 4. Decrypt
-  try {
-    const decrypted = await subtle.decrypt(
-        { name: "AES-GCM", iv },
-        aesKey,
-        ciphertext
-    );
-    return textDecoder.decode(decrypted);
-  } catch (e) {
-      console.error(e);
-      throw new Error("Decryption failed. Wrong password?");
-  }
-}
 export async function encryptWithMasterKey(plaintext) {
   const encodedPlaintext = textEncoder.encode(plaintext);
   const masterKey = await masterKeyPromise;
@@ -149,16 +120,94 @@ export async function encryptWithMasterKey(plaintext) {
   return bytesToBase64(combined);
 
 }
+/**
+ * 🔓 Decrypts data using a password.
+ * * @param {string} password - User's password
+ * @param {string} packedData - The Base64 string from encryptWithPassword
+ * @returns {Promise<string>} Decrypted text
+ */
+export async function decryptWithPassword(password, packedData) {
+  const subtle = getSubtle();
+
+  // 0. Basic sanity checks
+  if (!password || typeof password !== "string") {
+    throw new Error("Missing password.");
+  }
+
+  const combined = safeBase64ToBytes(packedData);
+  if (!combined) {
+    // Invalid or tampered base64
+    throw new Error("Invalid or corrupted secret.");
+  }
+
+  // Expected layout: [16 bytes salt][12 bytes IV][ciphertext+tag]
+  if (combined.length < 16 + 12 + 16) {
+    // 16 bytes minimum for GCM tag
+    throw new Error("Invalid or corrupted secret.");
+  }
+
+  const salt = combined.slice(0, 16);
+  const iv = combined.slice(16, 28);
+  const ciphertext = combined.slice(28);
+
+  // 2. Import Password
+  const baseKey = await subtle.importKey(
+    "raw",
+    textEncoder.encode(password),
+    "PBKDF2",
+    false,
+    ["deriveKey"]
+  );
+
+  // 3. Re-Derive Key
+  const aesKey = await subtle.deriveKey(
+    { name: "PBKDF2", salt, iterations: 600000, hash: "SHA-256" },
+    baseKey,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"]
+  );
+
+  // 4. Decrypt
+  try {
+    const decrypted = await subtle.decrypt(
+      { name: "AES-GCM", iv },
+      aesKey,
+      ciphertext
+    );
+    return textDecoder.decode(decrypted);
+  } catch (e) {
+    // Don't leak internal error – just say it's wrong / corrupted
+    throw new Error("Incorrect password or corrupted data.");
+  }
+}
+
+
 export async function decryptWithMasterKey(packedData) {
-  const combined = base64ToBytes(packedData);
+  const combined = safeBase64ToBytes(packedData);
+  if (!combined) {
+    throw new Error("Invalid or corrupted secret.");
+  }
+
+  // Layout: [12 bytes IV][ciphertext+tag]
+  if (combined.length < 12 + 16) {
+    throw new Error("Invalid or corrupted secret.");
+  }
+
   const iv = combined.slice(0, 12);
   const ciphertext = combined.slice(12);
+
   const masterKey = await masterKeyPromise;
-  const decryptedbuffer = await crypto.subtle.decrypt(
-  { name: "AES-GCM", iv },
-  masterKey,
-  ciphertext
-)
-const plaintext = textDecoder.decode(decryptedbuffer);
-return plaintext
+
+  try {
+    const decryptedBuffer = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv },
+      masterKey,
+      ciphertext
+    );
+    return textDecoder.decode(decryptedBuffer);
+  } catch (e) {
+    throw new Error("Invalid or corrupted secret.");
+  }
 }
+

@@ -49,3 +49,7 @@
   animation: fade 0.3s ease-out;
 }
 
+textarea {
+  overflow: hidden !important;
+  resize: none !important;
+}

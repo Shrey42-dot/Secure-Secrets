@@ -9,7 +9,7 @@ import secretRouter from "./routes/secret.js";
 const app = express();
 
 // must come AFTER app is defined
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "5mb" }));
 app.use(helmet());
 
 const allowedOrigins = [
@@ -43,6 +43,6 @@ mongoose.connect(process.env.MONGO_URI, { dbName: "secretsdb" })
     app.listen(PORT, () => console.log("Server running on " + PORT));
   })
   .catch((err) => {
-    console.error(err);
+    console.error("MongoDB connection error");
     process.exit(1);
   });

@@ -11,6 +11,6 @@ try {
     a.click();
     a.remove();
 } catch (err) {
-    console.error("Failed to download QR:", err);
+    console.error("Failed to download QR");
 }
 }
