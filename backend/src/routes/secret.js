@@ -1,13 +1,13 @@
 import express from "express";
 import Secret from "../models/Secret.js";
-import { genToken, hashToken } from "../lib/crypto.js";
+import { genToken, hashToken } from "../lib/backcrypto.js";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 const router = express.Router();
 
 router.post("/", async (req, res) => {
   try {
-    const { secret, password_protected, salt } = req.body;
+    const { secret, password_protected } = req.body;
     const ttl_seconds = req.body.ttl_seconds || 3600;
 
     if (!secret || typeof secret !== "string") {
@@ -21,7 +21,6 @@ router.post("/", async (req, res) => {
       token_hash: tokenHash,
       ciphertext: secret,
       password_protected: password_protected || false,
-      salt: salt || null,
       expires_at: new Date(Date.now() + ttl_seconds * 1000)
     });
 
@@ -45,8 +44,8 @@ router.get("/:token", async (req, res) => {
     return res.json({
       encrypted: doc.ciphertext,
       expires_at: doc.expires_at,
-      password_protected: doc.password_protected,
-      salt: doc.salt })
+      password_protected: doc.password_protected
+    })
 
   } catch (err) {
     console.error("GET / error:", err);

@@ -1,4 +1,5 @@
-import CryptoJS from "crypto-js";
+import { decryptWithMasterKey } from "../utils/frontcrypto";
+import { decryptWithPassword as webDecrypt } from "../utils/frontcrypto";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
@@ -12,7 +13,6 @@ export default function ViewSecret() {
   // For password-protected flow:
   const [needPassword, setNeedPassword] = useState(false);
   const [password, setPassword] = useState("");
-  const [saltHex, setSaltHex] = useState(null);
   const [ciphertext, setCiphertext] = useState(null);
 
   // NEW: decrypted data used for both UI and PDF
@@ -38,7 +38,7 @@ export default function ViewSecret() {
     })
       .then((data) => {
         if (!data) return;
-        if (!data.encrypted && !data.secret && !data.secret) {
+        if (!data.encrypted && !data.secret ) {
           setError("This link has expired or has already been used.");
           return;
         }
@@ -49,38 +49,28 @@ export default function ViewSecret() {
         // If password-protected flag is present, defer decryption until user provides password
         if (data.password_protected) {
           setNeedPassword(true);
-          setSaltHex(data.salt); // expecting hex string or null
           setCiphertext(encryptedField);
           setExpiresAt(data.expires_at ? new Date(data.expires_at) : null);
           setIsPasswordProtected(true); // NEW: mark this so PDF knows
           return;
         }
 
-        // Non-password-protected → decrypt using ENV key (existing behavior)
-        try {
-          const bytes = CryptoJS.AES.decrypt(
-            encryptedField,
-            import.meta.env.VITE_ENCRYPTION_KEY
-          );
-          const decryptedTextString = bytes.toString(CryptoJS.enc.Utf8);
+        // Non-password-protected → decrypt using master key
+        decryptWithMasterKey(encryptedField)
+          .then((decryptedTextString) => {
+            const payload = JSON.parse(decryptedTextString);
 
-          if (!decryptedTextString) {
+            setDecryptedText(payload.text);
+            setDecryptedImageBase64(payload.image || null);
+            setIsPasswordProtected(false);
+
+            setExpiresAt(data.expires_at ? new Date(data.expires_at) : null);
+          })
+          .catch((err) => {
+            console.error(err);
             setError("Error decrypting secret.");
-            return;
-          }
+          });
 
-          const payload = JSON.parse(decryptedTextString);
-
-          // NEW: store decrypted data for UI + PDF
-          setDecryptedText(payload.text);
-          setDecryptedImageBase64(payload.image || null);
-          setIsPasswordProtected(false);
-
-          setExpiresAt(data.expires_at ? new Date(data.expires_at) : null);
-        } catch (err) {
-          console.error(err);
-          setError("Error decrypting secret.");
-        }
       })
       .catch((err) => {
         console.error(err);
@@ -88,43 +78,30 @@ export default function ViewSecret() {
       });
   }, [token]);
 
-  function decryptWithPassword() {
-    setError("");
-    try {
-      if (!password || !saltHex || !ciphertext) {
-        setError("Missing password or data.");
-        return;
-      }
+  async function decryptWithPassword() {
+  setError("");
 
-      // reconstruct salt WordArray from hex string
-      const saltWA = CryptoJS.enc.Hex.parse(saltHex);
-
-      const derivedKey = CryptoJS.PBKDF2(password, saltWA, {
-        keySize: 256 / 32,
-        iterations: 10000,
-      });
-
-      const bytes = CryptoJS.AES.decrypt(ciphertext, derivedKey.toString());
-      const decryptedTextString = bytes.toString(CryptoJS.enc.Utf8);
-
-      if (!decryptedTextString) {
-        setError("Incorrect password or corrupted data.");
-        return;
-      }
-
-      const payload = JSON.parse(decryptedTextString);
-
-      // NEW: store decrypted data for UI + PDF
-      setDecryptedText(payload.text);
-      setDecryptedImageBase64(payload.image || null);
-      setIsPasswordProtected(true);
-
-      setNeedPassword(false);
-    } catch (err) {
-      console.error(err);
-      setError("Incorrect password or corrupted data.");
+  try {
+    if (!password || !ciphertext) {
+      setError("Missing password or data.");
+      return;
     }
+
+    // ciphertext is now the packed base64 output from WebCrypto
+    const decryptedTextString = await webDecrypt(password, ciphertext);
+
+    const payload = JSON.parse(decryptedTextString);
+
+    setDecryptedText(payload.text);
+    setDecryptedImageBase64(payload.image || null);
+    setIsPasswordProtected(false);
+
+    setNeedPassword(false);
+  } catch (err) {
+    console.error(err);
+    setError("Incorrect password or corrupted data.");
   }
+}
 
   // NEW: Single handler to download PDF using decrypted data
   const handleDownloadPDF = async () => {

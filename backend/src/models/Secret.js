@@ -9,7 +9,6 @@ const SecretSchema = new mongoose.Schema({
 
   password_protected: { type: Boolean, default: false },
   
-  salt: { type: String, default: null }, // hex string from frontend
 
   created_at: { type: Date, default: Date.now },
 

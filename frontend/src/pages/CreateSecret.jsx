@@ -1,10 +1,10 @@
 // src/pages/CreateSecret.jsx
 import { useState, useRef } from "react";
-import CryptoJS from "crypto-js";
+import { encryptWithMasterKey} from "../utils/frontcrypto";  
 
 // utils
 import { stripMetadata, blobToBase64 } from "../utils/file";
-import { encryptWithPassword } from "../utils/crypto";
+import { encryptWithPassword } from "../utils/frontcrypto";
 
 // API
 import { createSecret } from "../api/secretsapi";
@@ -59,25 +59,17 @@ export default function CreateSecret() {
       let encrypted;
       let saltHex = null;
       let passwordProtected = false;
-
-      if (usePassword && password.trim() !== "") {
-        const result = encryptWithPassword(password, jsonString);
-        encrypted = result.encrypted;
-        saltHex = result.saltHex;
+      if (usepassword && password.trim !== ""){
+        encrypted = await encryptWithPassword(password, jsonString);
         passwordProtected = true;
       } else {
-        encrypted = CryptoJS.AES.encrypt(
-          jsonString,
-          import.meta.env.VITE_ENCRYPTION_KEY
-        ).toString();
+        encrypted = await encryptWithMasterKey(jsonString);
         passwordProtected = false;
       }
-
       const body = {
         secret: encrypted,
         ttl_seconds: ttl,
         password_protected: passwordProtected,
-        salt: saltHex,
       };
 
       const data = await createSecret(body);
