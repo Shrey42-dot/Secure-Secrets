@@ -37,6 +37,7 @@ export default function ViewSecret() {
       return res.json();
     })
       .then((data) => {
+        if (!data) return;
         if (!data.encrypted && !data.secret && !data.secret) {
           setError("This link has expired or has already been used.");
           return;
