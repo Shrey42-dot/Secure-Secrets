@@ -24,12 +24,18 @@ export default function ViewSecret() {
     setError("");
 
     fetch(`${import.meta.env.VITE_API_URL}/api/secrets/${token}`)
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(`Server returned ${res.status}`);
-        }
-        return res.json();
-      })
+    .then((res) => {
+      if (res.status === 410) {
+        setError("This link has expired or has already been used.");
+        return null; // stop processing
+      }
+
+      if (!res.ok) {
+        throw new Error(`Server returned ${res.status}`);
+      }
+
+      return res.json();
+    })
       .then((data) => {
         if (!data.encrypted && !data.secret && !data.secret) {
           setError("This link has expired or has already been used.");
