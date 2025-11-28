@@ -1,12 +1,6 @@
 // src/pages/CreateSecret.jsx
-import { useState, useRef, useEffect } from "react";
-import { encryptWithMasterKey, encryptWithPassword } from "../utils/frontcrypto";  
-
-// utils
-import { stripMetadata, blobToBase64 } from "../utils/file";
-
-// API
-import { createSecret } from "../api/secretsapi";
+import { useRef, useEffect } from "react";
+import { useCreateSecret } from "../hooks/useCreateSecret"; // Import the hook
 
 // components
 import DragDropBox from "../Components/DragDropBox";
@@ -14,20 +8,33 @@ import PasswordSection from "../Components/PasswordSection";
 import GeneratedResult from "../Components/GeneratedResult";
 
 export default function CreateSecret() {
-  const [secret, setSecret] = useState("");
-  const [images, setImages] = useState([]);   // 🔥 MULTIPLE IMAGES
-  const [link, setLink] = useState("");
-  const [copied, setCopied] = useState(false);
-  const [ttl, setTtl] = useState(3600);
-  const [loading, setLoading] = useState(false);
-  const [usePassword, setUsePassword] = useState(false);
-  const [password, setPassword] = useState("");
-  const [dragActive, setDragActive] = useState(false);
+  const {
+    secret,
+    handleSecretChange,
+    images,
+    link,
+    copied,
+    ttl,
+    setTtl,
+    loading,
+    usePassword,
+    setUsePassword,
+    password,
+    setPassword,
+    dragActive,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    handleFileSelect,
+    removeImage,
+    generateSecret,
+    copyToClipboard,
+  } = useCreateSecret();
 
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // 🔥 AUTO EXPAND TEXTAREA
+  // Auto-expand textarea (UI Logic stays here)
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -35,147 +42,33 @@ export default function CreateSecret() {
     }
   }, [secret]);
 
-  const handleSecretChange = (e) => {
-    setSecret(e.target.value);
-  };
-
-  // 🔥 HANDLE DROPPED FILES (MULTIPLE)
-  const handleFiles = async (fileList) => {
-    const validFiles = [...fileList].filter(
-      f => f.type === "image/jpeg" || f.type === "image/png"
-    );
-
-    if (images.length + validFiles.length > 20) {
-      alert("Maximum 20 images allowed.");
-      return;
-    }
-
-    const newImages = [];
-
-    for (const file of validFiles) {
-      if (!file) continue;
-
-      if (file.size > 10 * 1024 * 1024) {
-        alert("Image too large. Max 10MB allowed.");
-        return;
-      }
-
-      if (file.type !== "image/jpeg" && file.type !== "image/png") {
-        alert("Only JPG or PNG allowed.");
-        return;
-      }
-
-      const cleaned = await stripMetadata(file);
-      const base64 = await blobToBase64(cleaned);
-
-      newImages.push(base64);
-    }
-
-    setImages((prev) => [...prev, ...newImages]);
-  };
-
-  const handleDragOver = (e) => {
+  // Wrapper to handle DOM Ref clearing after success
+  const onFormSubmit = async (e) => {
     e.preventDefault();
-    setDragActive(true);
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    setDragActive(false);
-  };
-
-  const handleDrop = async (e) => {
-    e.preventDefault();
-    setDragActive(false);
-
-    const files = e.dataTransfer.files;
-    await handleFiles(files);
-  };
-
-  const handleFileSelect = async (e) => {
-    const files = e.target.files;
-    await handleFiles(files);
-  };
-
-  const removeImage = (index) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  // GENERATE SECRET
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const payloadObj = {
-        text: secret,
-        images: images,  // 🔥 MULTIPLE IMAGES
-      };
-
-      const jsonString = JSON.stringify(payloadObj);
-
-      let encrypted;
-      let passwordProtected = false;
-
-      if (usePassword && password.trim() !== "") {
-        encrypted = await encryptWithPassword(password, jsonString);
-        passwordProtected = true;
-      } else {
-        encrypted = await encryptWithMasterKey(jsonString);
-      }
-
-      const body = {
-        secret: encrypted,
-        ttl_seconds: ttl,
-        password_protected: passwordProtected,
-      };
-
-      const data = await createSecret(body);
-
-      setLink(`${import.meta.env.VITE_FRONTEND_URL}/s/${data.token}`);
-
-      // RESET FORM
-      setSecret("");
-      setImages([]);
-      setPassword("");
-      setUsePassword(false);
-      setTtl(3600);
-
-      if (fileInputRef.current) fileInputRef.current.value = "";
-
-    } catch (err) {
-      console.error("Error creating secret");
-      alert("Error creating secret.");
-    } finally {
-      setLoading(false);
+    const success = await generateSecret();
+    if (success && fileInputRef.current) {
+      fileInputRef.current.value = ""; // Clear file input UI
     }
   };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(link).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
   return (
     <div className="bg-gray-800 dark:bg-white text-white dark:text-black p-6 rounded-xl shadow-lg transition-colors duration-500">
       <h1 className="text-xl mb-4 font-semibold">Create a One-Time Secret</h1>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={onFormSubmit}>
         <textarea
-          ref = {textareaRef}
+          ref={textareaRef}
           value={secret}
           onChange={handleSecretChange}
           placeholder="Type your secret here..."
           className="w-full p-3 rounded-lg text-black dark:text-black dark:bg-gray-200"
           rows={1}
-          style= {{
+          style={{
             overflow: "hidden",
             resize: "none",
           }}
         />
 
-        {/* Drag & Drop box component */}
         <DragDropBox
           images={images}
           dragActive={dragActive}
@@ -186,17 +79,16 @@ export default function CreateSecret() {
           openFilePicker={() => fileInputRef.current.click()}
         />
 
-        {/* Hidden file input for mobile */}
+        {/* Hidden file input */}
         <input
           type="file"
-          multiple  // 🔥 allow multiple files
-          accept="image/png, image/jpeg"  // ✅ restrict to JPG/PNG
+          multiple
+          accept="image/png, image/jpeg"
           ref={fileInputRef}
           onChange={handleFileSelect}
           className="hidden"
         />
 
-        {/* TTL select */}
         <select
           className="w-full mt-3 p-2 rounded-lg text-black dark:bg-gray-200 dark:text-black"
           value={ttl}
@@ -208,7 +100,6 @@ export default function CreateSecret() {
           <option value={604800}>7 days</option>
         </select>
 
-        {/* Password section component */}
         <PasswordSection
           usePassword={usePassword}
           setUsePassword={setUsePassword}
@@ -222,16 +113,16 @@ export default function CreateSecret() {
           className="mt-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-2 px-4 rounded-lg w-full flex justify-center items-center"
         >
           {loading ? (
-            <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+            <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full">
+              Generating..
+            </div>
           ) : (
             "Generate Link"
           )}
         </button>
       </form>
 
-      {link && (
-        <GeneratedResult link={link} copyToClipboard={copyToClipboard} />
-      )}
+      {link && <GeneratedResult link={link} copyToClipboard={copyToClipboard} />}
 
       {copied && (
         <div className="fixed bottom-4 right-4 bg-black text-white px-4 py-2 rounded-lg shadow-lg">
