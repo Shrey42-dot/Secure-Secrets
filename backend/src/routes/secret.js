@@ -123,26 +123,38 @@ function sanitizeForPDF(str) {
     .replace(/\\/g, "\\\\");              // escape backslashes
 }
 
+
 router.post("/:token/pdf", pdfLimiter, async (req, res) => {
   try {
-    const { text, image, password } = req.body;
+    //Destructure 'images' (plural), not 'image'
+    const { text, images, password } = req.body;
+
     // Prevent huge PDF payloads
-    if (text && text.length > 5000) {
+    if (text && text.length > 1000000) {
+       // Increased text limit slightly just in case
       return res.status(413).json({ error: "text_too_large" });
     }
 
-    if (image && image.length > 2_097_152) {
-      return res.status(413).json({ error: "image_too_large" });
+    // 2. FIX: Check size of images inside the array (10MB limit per image)
+    // 10MB = 10 * 1024 * 1024 = 10485760
+    if (images && Array.isArray(images)) {
+      for (const img of images) {
+        if (img.length > 10485760 * 1.37) { 
+           // Base64 is ~37% larger than binary. 10MB binary ~= 14MB Base64.
+           // Safe buffer: 15,000,000 chars
+           return res.status(413).json({ error: "image_too_large" });
+        }
+      }
     }
 
-    
-
-    if (!text && !image)
+    // 3. FIX: Check 'images' array length for content validation
+    if (!text && (!images || images.length === 0)) {
       return res.status(400).send("Missing PDF content");
+    }
 
     const pdfDoc = await PDFDocument.create();
 
-    // FIX: Encryption must happen BEFORE adding pages or embedding images/fonts
+    // Encryption must happen BEFORE adding pages
     if (password) {
       pdfDoc.encrypt({
         ownerPassword: password,
@@ -153,32 +165,47 @@ router.post("/:token/pdf", pdfLimiter, async (req, res) => {
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontSize = 14;
 
-    const safeText = sanitizeForPDF(text || "No text provided");
+    const safeText = sanitizeForPDF(text || " ");
 
-    // Draw the text with wrapping + multipage
-    await drawMultilineText(
-      pdfDoc,
-      safeText,
-      font,
-      fontSize,
-      500,   // max width
-      50,    // x
-      750    // y start
-    );
-
+    // Draw text only if it exists
+    if (text) {
+      await drawMultilineText(
+        pdfDoc,
+        safeText,
+        font,
+        fontSize,
+        500,   // max width
+        50,    // x
+        750    // y start
+      );
+    } else {
+      // If no text, add a blank page to start so we can add images
+      // (Unless drawMultilineText handles empty strings by adding a page, 
+      // but usually it's safer to ensure at least one page exists if we have only images)
+      if (!images || images.length === 0) pdfDoc.addPage([600, 800]);
+    }
 
     // MULTI-IMAGE PDF
+    // 4. FIX: The variable 'images' is now correctly defined from req.body
     if (images && Array.isArray(images) && images.length > 0) {
       for (const imgBase64 of images) {
+        // Safety check for empty strings
+        if (!imgBase64) continue;
+
         const imgBytes = Buffer.from(imgBase64, "base64");
 
         let embedded;
-        if (imgBytes[0] === 0xff && imgBytes[1] === 0xd8) {
-          embedded = await pdfDoc.embedJpg(imgBytes);
-        } else if (imgBytes[0] === 0x89 && imgBytes[1] === 0x50) {
-          embedded = await pdfDoc.embedPng(imgBytes);
-        } else {
-          continue; // skip invalid image
+        try {
+          if (imgBytes[0] === 0xff && imgBytes[1] === 0xd8) {
+            embedded = await pdfDoc.embedJpg(imgBytes);
+          } else if (imgBytes[0] === 0x89 && imgBytes[1] === 0x50) {
+            embedded = await pdfDoc.embedPng(imgBytes);
+          } else {
+            continue; // skip invalid image types
+          }
+        } catch (e) {
+          console.error("Error embedding image:", e);
+          continue; 
         }
 
         const { width, height } = embedded.scale(1);
@@ -200,8 +227,6 @@ router.post("/:token/pdf", pdfLimiter, async (req, res) => {
       }
     }
 
-
-
     const pdfBytes = await pdfDoc.save();
 
     res.setHeader("Content-Type", "application/pdf");
@@ -212,7 +237,7 @@ router.post("/:token/pdf", pdfLimiter, async (req, res) => {
 
     res.send(Buffer.from(pdfBytes));
   } catch (err) {
-    
+    console.error("PDF generation failed:", err);
     res.status(500).send("PDF generation failed");
   }
 });
