@@ -2,18 +2,17 @@
 import mongoose from "mongoose";
 
 const SecretSchema = new mongoose.Schema({
-  token_hash: { type: String, required: true, unique: true },
+	token_hash: { type: String, required: true, unique: true },
 
-  // Encrypted string sent from the frontend (AES encrypted JSON)
-  ciphertext: { type: String, required: true },
+	// Encrypted string sent from the frontend (AES encrypted JSON)
+	ciphertext: { type: String, required: true },
 
-  password_protected: { type: Boolean, default: false },
-  
+	password_protected: { type: Boolean, default: false },
 
-  created_at: { type: Date, default: Date.now },
+	created_at: { type: Date, default: Date.now },
 
-  // When this secret expires
-  expires_at: { type: Date, required: true }
+	// When this secret expires
+	expires_at: { type: Date, required: true },
 });
 
 // TTL index to automatically remove expired documents

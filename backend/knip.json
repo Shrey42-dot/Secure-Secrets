@@ -1,0 +1,4 @@
+{
+  "entry": ["src/index.js"],
+  "ignoreDependencies": ["@biomejs/biome"]
+}
