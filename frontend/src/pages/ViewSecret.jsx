@@ -78,7 +78,7 @@ export default function ViewSecret() {
           <div>
             {expiresAt && (
               <p className="text-yellow-400 mt-2 text-sm">
-                ⏳ Expires at: {expiresAt.toLocaleString()}
+                ⏳ Would Expires at: {expiresAt.toLocaleString()}
               </p>
             )}
           </div>
