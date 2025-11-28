@@ -7,8 +7,8 @@ import cors from "cors";
 import secretRouter from "./routes/secret.js";
 
 const app = express();
+app.set('trust proxy', 1);
 
-// must come AFTER app is defined
 app.use(express.json({ limit: "250mb" }));
 app.use(express.urlencoded({ limit: "250mb", extended: true }));
 app.use(helmet());
