@@ -9,8 +9,8 @@ import secretRouter from "./routes/secret.js";
 const app = express();
 
 // must come AFTER app is defined
-app.use(express.json({ limit: "20mb" }));
-app.use(express.urlencoded({ limit: "20mb", extended: true }));
+app.use(express.json({ limit: "250mb" }));
+app.use(express.urlencoded({ limit: "250mb", extended: true }));
 app.use(helmet());
 
 const allowedOrigins = [

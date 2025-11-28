@@ -55,8 +55,8 @@ export default function CreateSecret() {
     for (const file of validFiles) {
       if (!file) continue;
 
-      if (file.size > 2000 * 1024) {
-        alert("Image too large. Max 2MB allowed.");
+      if (file.size > 10 * 1024 * 1024) {
+        alert("Image too large. Max 10MB allowed.");
         return;
       }
 
