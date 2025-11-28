@@ -22,7 +22,7 @@ export default function DragDropBox({
       onDrop={handleDrop}
       onClick={openFilePicker}
     >
-      <p classname= "text-black dark:text-gray-700 transition-colors duration-500">
+      <p className="text-gray-400 dark:text-black transition-colors duration-500">
         Drag and Drop upto 20 JPG/PNG images here, or click to browse
       </p>
       {/* IMAGE THUMBNAILS GRID */}
@@ -41,10 +41,11 @@ export default function DragDropBox({
                 shadow-md hover:shadow-xl 
                 transition-all duration-500
               "
+              onClick={(e) => e.stopPropagation()} // Stop click from opening file picker
             >
-              {/* Image */}
+              {/* Image - FIX FOR PROBLEM 2: Added data URI prefix */}
               <img
-                src={img}
+                src={`data:image/*;base64,${img}`}
                 alt={`img-${index}`}
                 className="
                   w-full h-32 object-cover 
@@ -54,10 +55,12 @@ export default function DragDropBox({
                 "
               />
 
-              {/* Remove Button */}
+              {/* Remove Button - FIX FOR PROBLEM 3: Added type="button" and preventDefault */}
               <button
+                type="button" 
                 onClick={(e) => {
-                  e.stopPropagation(); // avoid triggering file picker
+                  e.preventDefault(); // Stop default button behavior
+                  e.stopPropagation(); // Stop click from bubbling to parent
                   removeImage(index);
                 }}
                 className="
@@ -85,4 +88,3 @@ export default function DragDropBox({
     </div>
   );
 }
-

@@ -222,7 +222,7 @@ export default function CreateSecret() {
           className="mt-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-2 px-4 rounded-lg w-full flex justify-center items-center"
         >
           {loading ? (
-            <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full">Generating..</div>
+            <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
           ) : (
             "Generate Link"
           )}
